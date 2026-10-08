@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.playwright-cli/
+output/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.agents/
+.codex/
+.aws/
