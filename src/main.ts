@@ -11,7 +11,7 @@ import { MiniMap } from './MiniMap';
 import { TravelGrid } from './TravelGrid';
 import { celestialBodies, bodyIndex, LIGHT_SPEED } from './data/celestialBodies';
 import { distance, duration, number } from './utils/units';
-import { surfaceDistanceKm, observationDistanceKm, MovementClock } from './utils/navigation';
+import { surfaceDistanceKm, MovementClock } from './utils/navigation';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = layout;
@@ -281,10 +281,7 @@ function frame(now: number) {
   if (movement.arrived) {
     aim();
     updateButtons();
-    message(
-      celestialBodies[flight.target].ja +
-        'の観察位置に到着。太陽を選択すると、この距離からの小ささを確かめられます。',
-    );
+    message(celestialBodies[flight.target].ja + 'の表面に到着しました。');
   }
   if (movement.blocked) {
     stop();
@@ -306,16 +303,16 @@ function frame(now: number) {
     select.value = String(controller.speedIndex);
     updateFlightSpeed();
     miniMap.update(controller.position, scale, flight.target);
-    const travelRemaining = observationDistanceKm(
+    const travelRemaining = surfaceDistanceKm(
       controller.position,
       scale.position(celestialBodies[flight.target]),
       scale.radius(celestialBodies[flight.target]),
     );
     document.querySelector<HTMLElement>(`[data-readout="${flight.target}"]`)!.textContent =
       travelRemaining === 0
-        ? '観察位置に到着'
+        ? '表面に到着'
         : (flight.active ? '自動移動中 · ' : '') +
-          '停止位置まで ' +
+          '表面まで ' +
           distance(travelRemaining) +
           ' · 到着まで約' +
           duration(travelRemaining / controller.speed);

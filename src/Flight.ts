@@ -48,7 +48,7 @@ export class Flight {
       const result = approach(
         controller.position,
         this.scale.position(body),
-        observationRadius(this.scale.radius(body)),
+        this.scale.radius(body),
         toWorld(controller.speed * dt),
       );
       controller.position.copy(result.position);

@@ -2,16 +2,12 @@ import { Vector3 } from 'three';
 import { KM_PER_WORLD_UNIT } from './units';
 
 export function surfaceDistanceKm(position: Vector3, destination: Vector3, radius: number) {
-  return Math.max(0, position.distanceTo(destination) - radius) * KM_PER_WORLD_UNIT;
+  const remaining = position.distanceTo(destination) - radius;
+  return remaining <= 1e-8 ? 0 : remaining * KM_PER_WORLD_UNIT;
 }
 
 export function observationRadius(radius: number) {
   return radius * 5;
-}
-
-export function observationDistanceKm(position: Vector3, destination: Vector3, radius: number) {
-  const remaining = position.distanceTo(destination) - observationRadius(radius);
-  return remaining <= 1e-8 ? 0 : remaining * KM_PER_WORLD_UNIT;
 }
 
 /** Movement uses wall time; lifecycle changes discard the inactive interval. */
@@ -32,7 +28,7 @@ export class MovementClock {
   }
 }
 
-/** Return a non-overshooting step, leaving room to view the destination. */
+/** Return a non-overshooting step to the requested distance from the destination. */
 export function approach(
   position: Vector3,
   destination: Vector3,

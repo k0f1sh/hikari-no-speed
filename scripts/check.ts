@@ -10,7 +10,6 @@ import {
   safeTravelDistance,
   surfaceDistanceKm,
   observationRadius,
-  observationDistanceKm,
   MovementClock,
 } from '../src/utils/navigation';
 import { targetBearing } from '../src/TargetHUD';
@@ -173,31 +172,29 @@ const angle = (2 * Math.atan(scale.radius(sun) / scale.position(earth).length())
 assert.ok(angle > 0.53 && angle < 0.54, 'Sun must be approximately 0.53 degrees from Earth');
 assert.equal(duration(earth.distanceFromSun / LIGHT_SPEED), '8m 19s');
 const destination = scale.position(earth),
-  standOff = observationRadius(scale.radius(earth));
+  standOff = scale.radius(earth);
 const start = new Vector3(0, 0, 24);
 const arrived = approach(start, destination, standOff, 1e10);
 assert.equal(arrived.arrived, true);
 assert.ok(Math.abs(arrived.position.distanceTo(destination) - standOff) < 1e-9);
 assert.equal(approach(arrived.position, destination, standOff, 10).step, 0);
-for (const body of [earth, moon]) {
+for (const body of celestialBodies) {
   const center = scale.position(body),
     radius = scale.radius(body);
-  const stopPosition = approach(start, center, observationRadius(radius), 1e10).position;
+  const stopPosition = approach(start, center, radius, 1e10).position;
   assert.equal(
-    observationDistanceKm(stopPosition, center, radius),
+    surfaceDistanceKm(stopPosition, center, radius),
     0,
     'Arrival ETA must be zero for ' + body.name,
   );
   assert.ok(
-    Math.abs(surfaceDistanceKm(stopPosition, center, radius) - body.diameter * 2) < 1e-6,
-    'Surface distance stays separate at observation position',
+    Math.abs(stopPosition.distanceTo(center) - radius) < 1e-8,
+    'Arrival must stop on the surface of ' + body.name,
   );
-  assert.equal(duration(observationDistanceKm(stopPosition, center, radius) / LIGHT_SPEED), '0s');
-  assert.equal(observationDistanceKm(center, center, radius), 0);
+  assert.equal(duration(surfaceDistanceKm(stopPosition, center, radius) / LIGHT_SPEED), '0s');
+  assert.equal(surfaceDistanceKm(center, center, radius), 0);
 }
-console.log(
-  'PASS: Earth/Moon observation arrival distance and ETA are zero; surface distance remains correct.',
-);
+console.log('PASS: All body surface arrival distances and ETAs are zero.');
 const small = approach(start, destination, standOff, toWorld(LIGHT_SPEED));
 assert.ok(Math.abs(small.step * KM_PER_WORLD_UNIT - LIGHT_SPEED) < 1e-8);
 assert.equal(small.arrived, false);
@@ -287,17 +284,14 @@ for (const fps of [60, 10, 5]) {
   flight.jump(bodyIndex('Mercury'));
   const start = controller.position.clone();
   const destination = flightScale.position(earth);
-  const expectedKm = observationDistanceKm(start, destination, flightScale.radius(earth));
+  const expectedKm = surfaceDistanceKm(start, destination, flightScale.radius(earth));
   flight.start(earthIndex);
   const frames = Math.ceil((expectedKm / controller.speed) * fps) + 1;
   for (let frame = 0; frame < frames && flight.active; frame++) {
     assert.equal(flight.update(1 / fps).blocked, false);
   }
   assert.equal(flight.active, false, 'Mercury → Earth must pass Venus at ' + fps + ' FPS');
-  assert.equal(
-    observationDistanceKm(controller.position, destination, flightScale.radius(earth)),
-    0,
-  );
+  assert.equal(surfaceDistanceKm(controller.position, destination, flightScale.radius(earth)), 0);
   assert.ok(Math.abs(controller.travelled - expectedKm) < 1e-6);
 
   // The identical path must still stop manual flight at Venus.
@@ -329,7 +323,7 @@ for (const [sourceIndex] of celestialBodies.entries()) {
     const flightScale = new ScaleManager();
     const { controller, flight } = flightFixture(flightScale);
     flight.jump(sourceIndex);
-    const expectedKm = observationDistanceKm(
+    const expectedKm = surfaceDistanceKm(
       controller.position,
       flightScale.position(body),
       flightScale.radius(body),
@@ -341,11 +335,7 @@ for (const [sourceIndex] of celestialBodies.entries()) {
     assert.equal(flight.active, false);
     assert.ok(Math.abs(controller.travelled - expectedKm) < 1e-5);
     assert.equal(
-      observationDistanceKm(
-        controller.position,
-        flightScale.position(body),
-        flightScale.radius(body),
-      ),
+      surfaceDistanceKm(controller.position, flightScale.position(body), flightScale.radius(body)),
       0,
     );
   }
